@@ -1,0 +1,4 @@
+{
+    "TEST_DATA_PATH": "data/classic/nrp1.txt",
+    "NUMBER_OF_RUNS": 25000
+}
