@@ -1,53 +1,46 @@
 import math
-from platypus import NSGAII, nondominated, unique
-import matplotlib.pyplot as plt
-from .utils import test_data, cli
-from .NRP_MOO import NRP_MOO
+
+from platypus import NSGAII, GeneticAlgorithm, nondominated, unique, CompoundOperator, SBX, HUX, PM, BitFlip
+
+from .utils import test_data, cli, results
+from .problems import NRP_MOO, NRP_SOO, NRP_Random
 
 def main():
+    # get config vars
     config = cli.init()
-    number_of_runs = config['NUMBER_OF_RUNS']
+    population_size_nsgaii = config['POPULATION_SIZE_NSGAII']
+    number_of_runs_nsgaii = config['NUMBER_OF_RUNS_NSGAII']
+    number_of_runs_ga = config['NUMBER_OF_RUNS_GA']
+    population_size_ga = config['POPULATION_SIZE_GA']
     config_path = config['TEST_DATA_PATH']
-
+    ga_weights = config['GA_WEIGHTS']
+    # parse and get specific data
     data = test_data.parse(config_path)
-
     requirements = data[0]
     clients = data[1]
+    # run NSGA-II multi-objective algorithm
+    print('Running NSGA-II...')
     NRP_multi = NRP_MOO(requirements, clients)
-
-    problem = NRP_multi.generate_problem()
-    algorithm = NSGAII(problem)
-    algorithm.run(number_of_runs)
-
-
-    solutions = unique(nondominated(algorithm.result))
-    for solution in solutions:
-        reqs_met = []
-        for i in range(len(solution.variables[0])):
-            if solution.variables[0][i]:
-                reqs_met.append(i + 1)
-        print(reqs_met, solution.objectives)
-
-    largest_x = 0;
-    smallest_y = 0;
-    for s in solutions:
-        if s.objectives[0] > largest_x:
-            largest_x = s.objectives[0]
-        if s.objectives[1] < smallest_y:
-            smallest_y = s.objectives[1]
-    def roundup(x):
-        round = math.ceil(x / 10.0)
-        if x < 0:
-            round = math.floor(x / 10.0)
-        return int(round) * 10
-
-    plt.scatter([s.objectives[0] for s in solutions],
-                [s.objectives[1] for s in solutions])
-    plt.xlim([0, roundup(largest_x)])
-    plt.ylim([roundup(smallest_y), 0])
-    plt.xlabel("Score")
-    plt.ylabel("-Cost")
-    plt.show()
+    algorithm = NSGAII(NRP_multi.generate_problem(), population_size=population_size_nsgaii)
+    algorithm.run(number_of_runs_nsgaii)
+    NSGAII_solutions = unique(nondominated(algorithm.result))
+    # run GA single-objective algorithm with different weights
+    GA_solutions = []
+    for ga_weight in ga_weights:
+        print('Running GA for weights ' + str(ga_weight) + ' and ' + str(1 - ga_weight) + '...')
+        NRP_single = NRP_SOO(requirements, clients, ga_weight, 1 - ga_weight)
+        algorithm = GeneticAlgorithm(NRP_single.generate_problem(), population_size=population_size_ga)
+        algorithm.run(number_of_runs_ga)
+        GA_solutions.extend(unique(nondominated(algorithm.result)))
+    # run random algorithm
+    print('Generating random solution...')
+    NRP_random = NRP_Random(requirements, clients)
+    random_solutions = NRP_random.generate_solutions()
+    print('done!')
+    # draw graphs
+    results.draw_graphs([results.get_graph_data_nsga_ii(NSGAII_solutions),
+                        results.get_graph_data_ga(GA_solutions, requirements, clients),
+                        results.get_graph_data_ga(random_solutions, requirements, clients)])
 
 if __name__ == '__main__':
     main()
