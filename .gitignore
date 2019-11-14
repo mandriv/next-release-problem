@@ -1,3 +1,13 @@
+.DS_Store
+
+# TeX stuff
+report/*.aux
+report/*.fdb_latexmk
+report/*.fls
+report/*.out
+report/*.gz
+report/*.xdv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
