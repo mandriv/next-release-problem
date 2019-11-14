@@ -6,9 +6,18 @@ class NRP_Problem():
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, requirements, clients):
+    def __init__(self, requirements, clients, budget_constraint):
         self.requirements = requirements.copy()
         self.clients = clients.copy()
+        self.max_budget = self.get_max_budget(budget_constraint)
+
+    def get_max_budget(self, budget_constraint):
+        sum = 0
+        for req in self.requirements:
+            sum += req
+        if budget_constraint is None:
+            return sum
+        return sum / budget_constraint
 
     def get_requirements_met(self, candidate):
         requirements_met = []
@@ -54,37 +63,43 @@ class NRP_MOO(NRP_Problem):
         score = self.get_score(x[0])
         cost = self.get_cost(x[0])
         number_of_requirements_met = len(self.get_requirements_met(x[0]))
-        return [score, cost], [number_of_requirements_met]
+        max_budget_constraint = cost - self.max_budget
+        return [score, cost], [number_of_requirements_met, max_budget_constraint]
 
     def generate_problem(self):
-        # 1 decision variables, 2 objectives, 1 constraint
-        problem = Problem(1, 2, 1)
+        # 1 decision variables, 2 objectives, 2 constraint
+        problem = Problem(1, 2, 2)
         problem.types[:] = Binary(len(self.requirements))
         problem.directions[:] = Problem.MAXIMIZE
-        problem.constraints[:] = "!=0"
+        problem.constraints[0] = "!=0"
+        problem.constraints[1] = "<=0"
         problem.function = self.get_problem_function
         return problem
 
 class NRP_SOO(NRP_Problem):
 
-    def __init__(self, requirements, clients, score_weight, cost_weight):
-        super(NRP_SOO, self).__init__(requirements, clients)
+    def __init__(self, requirements, clients, budget_constraint, score_weight, cost_weight):
+        super(NRP_SOO, self).__init__(requirements, clients, budget_constraint)
         self.score_weight = score_weight
         self.cost_weight = cost_weight
 
     def get_problem_function(self, x):
-        weighted_score = self.score_weight * self.get_score(x[0])
-        weighted_cost = self.cost_weight * self.get_cost(x[0])
+        score = self.get_score(x[0])
+        cost = self.get_cost(x[0])
+        weighted_score = self.score_weight * score
+        weighted_cost = self.cost_weight * cost
         fitness = weighted_score + weighted_cost
         number_of_requirements_met = len(self.get_requirements_met(x[0]))
-        return [fitness], [number_of_requirements_met]
+        max_budget_constraint = cost - self.max_budget
+        return [fitness], [number_of_requirements_met, max_budget_constraint]
 
     def generate_problem(self):
-        # 1 decision variables, 1 objectives, 1 constraint
-        problem = Problem(1, 1, 1)
+        # 1 decision variables, 1 objectives, 2 constraints
+        problem = Problem(1, 1, 2)
         problem.types[:] = Binary(len(self.requirements))
         problem.directions[:] = Problem.MAXIMIZE
-        problem.constraints[:] = "!=0"
+        problem.constraints[0] = "!=0"
+        problem.constraints[1] = "<=0"
         problem.function = self.get_problem_function
         return problem
 

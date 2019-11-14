@@ -1,3 +1,5 @@
+import math
+
 import matplotlib.pyplot as plt
 
 from ..problems import NRP_Problem
@@ -9,9 +11,10 @@ def roundup(x):
     return int(round) * 10
 
 def find_axis_limits(data):
-    smallest_x = float('inf');
+    smallest_x = float('inf')
     largest_x = 0;
     smallest_y = 0;
+    largest_y = float('-inf')
     for x in data[0]:
         if x < smallest_x:
             smallest_x = x
@@ -20,14 +23,16 @@ def find_axis_limits(data):
     for y in data[1]:
         if y < smallest_y:
             smallest_y = y
-    return (smallest_x, largest_x, smallest_y)
+        if y > largest_y:
+            largest_y = y
+    return (roundup(smallest_x), roundup(largest_x), roundup(smallest_y), roundup(largest_y))
 
 def get_graph_data_nsga_ii(solutions):
     return ([s.objectives[0] for s in solutions],
             [s.objectives[1] for s in solutions])
 
-def get_graph_data_ga(solutions, requirements, clients):
-    problem = NRP_Problem(requirements, clients)
+def get_graph_data_ga(solutions, requirements, clients, budget_constraint):
+    problem = NRP_Problem(requirements, clients, budget_constraint)
     data = ([], [])
     for solution in solutions:
         candidate = solution.variables[0]
@@ -36,7 +41,6 @@ def get_graph_data_ga(solutions, requirements, clients):
     return data
 
 def draw_graphs(data):
-    print(data[1])
     meta = [('o', 'none', 'r', 'NSGA-II'),
         ('x', 'b', 'none', 'Single-Objective GA'),
         ('.', 'g', 'none', 'Random')]
@@ -55,7 +59,7 @@ def draw_graphs(data):
         data_flat[1].extend(d[1])
     limits = find_axis_limits(data_flat)
     plt.xlim([limits[0], limits[1]])
-    plt.ylim([limits[2], 0])
+    plt.ylim([limits[2], limits[3]])
     plt.xlabel("Score")
     plt.ylabel("-Cost")
     plt.legend(loc='upper right')
