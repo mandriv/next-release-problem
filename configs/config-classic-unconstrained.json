@@ -1,0 +1,9 @@
+{
+    "TEST_DATA_PATH": "data/classic/nrp1.txt",
+    "POPULATION_SIZE_NSGAII": 200,
+    "NUMBER_OF_RUNS_NSGAII": 15000,
+    "POPULATION_SIZE_GA": 200,
+    "NUMBER_OF_RUNS_GA": 15000,
+    "GA_WEIGHTS": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    "BUDGET_CONSTRAINT": null
+}
